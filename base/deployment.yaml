@@ -1,0 +1,33 @@
+# demo-shop: a small web service (nginx). Three copies, each asking for 100m CPU and 128Mi memory.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-shop
+  labels:
+    app: demo-shop
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: demo-shop
+  template:
+    metadata:
+      labels:
+        app: demo-shop
+    spec:
+      containers:
+        - name: web
+          image: public.ecr.aws/nginx/nginx:1.27
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

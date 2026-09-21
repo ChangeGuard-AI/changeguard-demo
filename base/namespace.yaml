@@ -1,0 +1,8 @@
+# deploy.sh creates this namespace with the name you choose (cg-demo-<something>).
+# The label lets delete.sh remove only namespaces that deploy.sh created.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: NAMESPACE
+  labels:
+    app.kubernetes.io/part-of: changeguard-demo
