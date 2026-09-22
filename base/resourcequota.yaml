@@ -1,10 +1,22 @@
-# The namespace budget: 1 CPU and 1Gi of memory for all pods together.
-# 3 replicas use 300m CPU. 4 fit. 20 would need 2 CPU.
+# The namespace budget, and the reason a proposed change can be INFEASIBLE
+# rather than merely unwise.
+#
+# demo-shop requests 100m CPU and 64Mi of memory per replica, so:
+#
+#    2 replicas (today)     200m CPU   128Mi    fits
+#    3 replicas             300m CPU   192Mi    fits
+#    6 replicas             600m CPU            over the 500m CPU budget
+#   20 replicas           2,000m CPU            far over, and over the 6-pod limit
+#
+# None of that is ChangeGuard's opinion. It is arithmetic against this object,
+# which is why the verdict on a 20-replica change is the same every time.
 apiVersion: v1
 kind: ResourceQuota
 metadata:
   name: demo-quota
+  namespace: cg-demo
 spec:
   hard:
-    requests.cpu: "1"
-    requests.memory: 1Gi
+    requests.cpu: 500m
+    requests.memory: 512Mi
+    pods: "6"

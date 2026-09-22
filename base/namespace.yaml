@@ -1,8 +1,11 @@
-# deploy.sh creates this namespace with the name you choose (cg-demo-<something>).
-# The label lets delete.sh remove only namespaces that deploy.sh created.
+# The environment ChangeGuard judges changes against.
+#
+# This namespace exists and is running; the manifests beside this one describe
+# what is in it. That is the point — a judgment is only as good as the match
+# between what the repository says and what the cluster actually has.
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: NAMESPACE
+  name: cg-demo
   labels:
     app.kubernetes.io/part-of: changeguard-demo

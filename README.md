@@ -1,59 +1,53 @@
-# ChangeGuard Demo
+# changeguard-demo
 
-Watch ChangeGuard judge the same kind of change as safe or unsafe, depending on the live state
-of the environment it is about to enter. Verdicts are SHIP, HOLD, or BLOCK, with the evidence
-behind the call.
+A small web service, `demo-shop`, running in the `cg-demo` namespace. Two
+replicas of nginx behind a Service, with a namespace budget that is easy to
+exceed on purpose.
 
-## Zero setup: paste it into the product
+This repository is deliberately boring. The sophistication belongs in
+ChangeGuard, not here.
 
-No cluster and no install needed.
+## What's in it
 
-1. Sign in at [app.changeguard.ai](https://app.changeguard.ai) (creating an account is free).
-2. Open **Preflight** and paste the contents of [`changes/block.yaml`](changes/block.yaml)
-   into **Manifest (YAML)**.
-3. Click **Evaluate change**.
-
-With no environment connected, ChangeGuard judges the change on its own and tells you exactly
-which evidence it did not have. It refuses to guess: that is a HOLD, not a green checkmark.
-Connect a cluster (read-only) and the same paste is judged against live state, including
-whether it fits the namespace's quota.
-
-## One command against your own cluster
-
-```bash
-git clone https://github.com/ChangeGuard-AI/changeguard-demo.git
-cd changeguard-demo
-bash run.sh
+```
+base/namespace.yaml       the cg-demo namespace
+base/resourcequota.yaml   500m CPU, 512Mi memory, 6 pods
+base/deployment.yaml      demo-shop, 2 replicas, 100m CPU + 64Mi each
+base/service.yaml         demo-shop on port 80
 ```
 
-The first run asks two questions (API key, environment name) and saves them to `.env`.
-Then it does everything: deploys `demo-shop` (3 replicas) into a fresh namespace with a
-1 CPU / 1Gi quota, waits while ChangeGuard observes it, judges a safe change and an unsafe
-one, prints both verdicts, and deletes the namespace. About seven minutes, most of it
-ChangeGuard watching the new workload settle.
+These describe what is actually running. That matters more than it sounds: a
+judgment about a proposed change is only as good as the match between what the
+repository claims and what the cluster has.
 
-Expected result:
+## Proposing a change
 
-- **3 → 4 replicas: SHIP.** It fits. `Deploy it (optional): kubectl apply ...`
-- **3 → 20 replicas: BLOCK.** Valid YAML, but the namespace cannot take it:
-  `requests.cpu used 300m + proposed delta 1700m exceeds hard 1000m`
+Edit `base/deployment.yaml` in a pull request. That is the whole workflow —
+there is no ChangeGuard-specific step, no script to run, and nothing to paste.
 
-Needs: bash (macOS, Linux, or Git Bash on Windows) and `kubectl` access to a Kubernetes cluster
-that is connected to ChangeGuard, plus a ChangeGuard API key (Settings > API Keys, CI/CD scope).
+`.github/workflows/changeguard.yml` calls ChangeGuard on every pull request. It
+reads the manifests the pull request touches, judges the proposed object against
+the live `cg-demo` namespace, and posts the verdict as a check.
 
-## Piece by piece
+### Two changes worth trying
 
-On a fresh clone, prefix each with `bash` (or run `chmod +x *.sh` once).
+**`replicas: 2` → `3`** — 300m CPU against a 500m budget. It fits, and nothing
+about the environment argues against it.
 
-| Command | What it does |
-|---|---|
-| `./deploy.sh cg-demo-<name>` | Create the namespace, deploy demo-shop, wait until observed |
-| `./evaluate.sh changes/ship.yaml` | Judge 3 → 4 replicas. Expected: **SHIP** |
-| `./evaluate.sh changes/block.yaml` | Judge 3 → 20 replicas. Expected: **BLOCK** |
-| `./evaluate.sh changes/ship.yaml --no-environment` | Judge with no environment. Expected: **HOLD** |
-| `./delete.sh cg-demo-<name>` | Remove the namespace and everything in it |
+**`replicas: 2` → `20`** — 2,000m CPU against a 500m budget, and 20 pods
+against a limit of 6. This one cannot work, and it is worth being precise about
+why: ChangeGuard is not expressing a preference. It is arithmetic against the
+ResourceQuota in this repository, which is why the answer is the same every
+time.
 
-Nothing is ever deployed by a judgment. `evaluate.sh` calls the same API a CI pipeline calls;
-the record of every judgment appears under **All changes** in ChangeGuard.
+A change that fits the budget is not thereby *safe*; it is *feasible*. Those are
+different claims, and ChangeGuard makes the one it can support.
 
-The founder walkthrough is in [DEMO.md](DEMO.md).
+## Applying it yourself
+
+```
+kubectl apply -f base/
+```
+
+The manifests name their own namespace, so there is nothing to pass on the
+command line and no way to apply them somewhere you did not mean to.
