@@ -1,7 +1,8 @@
 # Demo walkthrough
 
 About five minutes. Commands run from this folder in a terminal (Git Bash on Windows).
-Keep ChangeGuard open in the browser.
+Keep ChangeGuard open in the browser. Steps 3 and 4 can also run with no terminal at all,
+straight from ChangeGuard's Preflight page (see "No terminal" below).
 
 **Before the meeting** (takes about 6 minutes):
 
@@ -89,6 +90,60 @@ Done.
 If SHIP comes back HOLD with "Rollout in progress": something rolled out in the cluster in the last
 five minutes, and ChangeGuard holds until it settles. Say so, show BLOCK, and try SHIP again a few
 minutes later.
+
+---
+
+## No terminal: run SHIP and BLOCK from the Preflight page
+
+Steps 3 and 4 also work entirely inside ChangeGuard. Open **Preflight**, type the change summary,
+paste the manifest into **Manifest (YAML)**, set **Target** to your cluster, and click
+**Evaluate change**.
+
+One detail: the files in `changes/` carry no namespace (the scripts inject it), so the pasted
+manifest must name your demo namespace, or the quota is judged against `default`.
+
+Paste this for BLOCK, with summary `Scale demo-shop from 3 to 20 replicas` (used a different
+namespace name? edit the `namespace:` line):
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-shop
+  namespace: cg-demo-investor
+  labels:
+    app: demo-shop
+spec:
+  replicas: 20   # was 3
+  selector:
+    matchLabels:
+      app: demo-shop
+  template:
+    metadata:
+      labels:
+        app: demo-shop
+    spec:
+      containers:
+        - name: web
+          image: public.ecr.aws/nginx/nginx:1.27
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+```
+
+For SHIP, paste the same block with `replicas: 4` and summary `Scale demo-shop from 3 to 4 replicas`.
+
+Same judgment path, same quota math, and the record lands under **All changes** either way.
 
 ---
 
