@@ -1,0 +1,29 @@
+# ChangeGuard — judge every proposed change against the live environment.
+#
+# This is the whole integration. The judgment logic lives in
+# ChangeGuard-AI/action and improves without this file changing.
+#
+# Pinned to @main rather than @v1 on purpose: this repository is where the
+# publishing step is proven on a real pull request before v1 moves it to
+# everyone.
+name: ChangeGuard
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# contents: read   — read the manifests this change touches.
+# id-token: write  — let GitHub mint the short-lived identity token
+#                    ChangeGuard signs in with. No API key, no secret.
+# checks: write    — let ChangeGuard post its verdict as a check on the pull
+#                    request. Writes checks and nothing else: it cannot read
+#                    or change the code, and it cannot comment.
+permissions:
+  contents: read
+  id-token: write
+  checks: write
+
+jobs:
+  changeguard:
+    uses: ChangeGuard-AI/action/.github/workflows/judge.yml@main
