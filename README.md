@@ -38,6 +38,12 @@ The YAML is valid; the namespace cannot take it.
 
 Expected ChangeGuard judgment: **BLOCK**
 
+## No terminal?
+
+Both changes can also be evaluated from ChangeGuard's **Preflight** page: paste the change into
+the Manifest box, add your namespace under `metadata:` (the scripts normally inject it), choose
+your cluster as the target, and Evaluate. Same judgment, same record.
+
 ## Cleanup
 
 ```bash
