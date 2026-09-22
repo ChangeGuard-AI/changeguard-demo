@@ -23,7 +23,7 @@ whether it fits the namespace's quota.
 ```bash
 git clone https://github.com/ChangeGuard-AI/changeguard-demo.git
 cd changeguard-demo
-./run.sh
+bash run.sh
 ```
 
 The first run asks two questions (API key, environment name) and saves them to `.env`.
@@ -38,11 +38,12 @@ Expected result:
 - **3 → 20 replicas: BLOCK.** Valid YAML, but the namespace cannot take it:
   `requests.cpu used 300m + proposed delta 1700m exceeds hard 1000m`
 
-Needs: bash (macOS, Linux, or Git Bash on Windows), `kubectl` access to a Kubernetes cluster
-that is connected to ChangeGuard, and a ChangeGuard API key (Settings > API Keys, CI/CD scope).
-On macOS/Linux run `chmod +x *.sh` after cloning.
+Needs: bash (macOS, Linux, or Git Bash on Windows) and `kubectl` access to a Kubernetes cluster
+that is connected to ChangeGuard, plus a ChangeGuard API key (Settings > API Keys, CI/CD scope).
 
 ## Piece by piece
+
+On a fresh clone, prefix each with `bash` (or run `chmod +x *.sh` once).
 
 | Command | What it does |
 |---|---|

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # The whole demo in one command.
 #
-#   ./run.sh            first run asks two questions, then does everything
-#   ./run.sh --keep     leave the demo namespace running afterwards
-#   ./run.sh --yes      no prompts (needs an existing .env), for CI
+#   bash run.sh         first run asks two questions, then does everything
+#   bash run.sh --keep  leave the demo namespace running afterwards
+#   bash run.sh --yes   no prompts (needs an existing .env), for CI
 #
 # What it does: deploys demo-shop into a fresh namespace, lets ChangeGuard
 # observe it, asks for a judgment on a safe change (SHIP) and an unsafe one
@@ -16,7 +16,7 @@ for a in "$@"; do
   case "$a" in
     --keep) KEEP=1 ;;
     --yes)  YES=1 ;;
-    *) echo "usage: ./run.sh [--keep] [--yes]"; exit 2 ;;
+    *) echo "usage: bash run.sh [--keep] [--yes]"; exit 2 ;;
   esac
 done
 
@@ -46,21 +46,21 @@ fi
 
 NS="cg-demo-$(date +%H%M%S)"
 
-./deploy.sh "$NS"
+bash ./deploy.sh "$NS"
 
 echo
 echo "== Safe change: scale demo-shop from 3 to 4 replicas =="
-./evaluate.sh changes/ship.yaml "$NS"
+bash ./evaluate.sh changes/ship.yaml "$NS"
 
 echo
 echo "== Unsafe change: scale demo-shop from 3 to 20 replicas =="
-./evaluate.sh changes/block.yaml "$NS"
+bash ./evaluate.sh changes/block.yaml "$NS"
 
 echo
 if [ "$KEEP" = 1 ]; then
   echo "Namespace $NS kept. Delete it later with: ./delete.sh $NS"
 else
-  ./delete.sh "$NS"
+  bash ./delete.sh "$NS"
 fi
 echo
 echo "Every judgment above is a record: https://app.changeguard.ai/changes"
