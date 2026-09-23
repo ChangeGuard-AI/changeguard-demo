@@ -43,6 +43,20 @@ time.
 A change that fits the budget is not thereby *safe*; it is *feasible*. Those are
 different claims, and ChangeGuard makes the one it can support.
 
+## Do not merge them
+
+Open either one, read the verdict, then close it. `main` is pinned to what the
+cluster is actually running, and a merged demo change leaves the manifest
+describing an environment that does not exist — after which every later
+judgment is measuring a proposal against a fiction, and the repository quietly
+stops being able to demonstrate anything.
+
+This has happened twice. Both times the verdict was correct and the merge was
+the mistake, which is its own small lesson: ChangeGuard tells you a change is
+infeasible, and it is still entirely possible to merge it. The check is a
+judgment, not a lock. Branch protection is what turns one into the other, and
+that is the customer's decision rather than ours.
+
 ## Applying it yourself
 
 ```
