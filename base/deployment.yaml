@@ -1,4 +1,4 @@
-# demo-shop: a small web service. Four replicas, each asking for 100m CPU and
+# demo-shop: a small web service. Twenty replicas, each asking for 100m CPU and
 # 64Mi of memory.
 #
 # To propose a change, edit this file in a pull request. ChangeGuard reads the
@@ -14,7 +14,7 @@ metadata:
     app: demo-shop
     purpose: golden-demo
 spec:
-  replicas: 4
+  replicas: 20
   selector:
     matchLabels:
       app: demo-shop
