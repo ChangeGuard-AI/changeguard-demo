@@ -27,6 +27,8 @@ spec:
       containers:
         - name: shop
           image: public.ecr.aws/nginx/nginx:1.27
+          securityContext:
+            runAsUser: 0
           ports:
             - containerPort: 80
           readinessProbe:
