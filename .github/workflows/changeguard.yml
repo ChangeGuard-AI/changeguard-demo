@@ -1,11 +1,12 @@
-# ChangeGuard — judge every proposed change against the live environment.
+# ChangeGuard — judge every proposed change, then deploy the one that was
+# cleared, then record what actually happened to it.
 #
-# This is the whole integration. The judgment logic lives in
-# ChangeGuard-AI/action and improves without this file changing.
+# The judgment logic lives in ChangeGuard-AI/action and improves without this
+# file changing. The deploy is here, in the open, run by this repository.
+# ChangeGuard brackets the deployment; it does not perform it.
 #
-# Pinned to @main rather than @v1 on purpose: this repository is where the
-# publishing step is proven on a real pull request before v1 moves it to
-# everyone.
+# Pinned to @main rather than @v1 on purpose: this repository is where changes
+# are proven on a real pull request before v1 moves them to everyone.
 name: ChangeGuard
 
 on:
@@ -13,9 +14,11 @@ on:
   push:
     branches: [main]
 
-# contents: read   — read the manifests this change touches.
-# id-token: write  — let GitHub mint the short-lived identity token
-#                    ChangeGuard signs in with. No API key, no secret.
+# contents: read   — read the manifests this change touches, and check out the
+#                    one the deploy applies.
+# id-token: write  — let GitHub mint short-lived identity tokens: one that
+#                    ChangeGuard verifies, one that AWS verifies. No API key,
+#                    no access key, no secret in this repository.
 # checks: write    — let ChangeGuard post its verdict as a check on the pull
 #                    request. Writes checks and nothing else: it cannot read
 #                    or change the code, and it cannot comment.
@@ -25,5 +28,62 @@ permissions:
   checks: write
 
 jobs:
+  # 1. JUDGE. Runs on the pull request, and again on the push that merges it —
+  #    because the environment can change between the two, and the question
+  #    "is this safe to land right now" is only answerable now.
   changeguard:
     uses: ChangeGuard-AI/action/.github/workflows/judge.yml@main
+
+  # 2. DEPLOY. Only an affirmative SHIP.
+  #
+  #    The reusable workflow's own example reads `!= 'BLOCK'`, which deploys on
+  #    HOLD. HOLD means ChangeGuard could not establish that the change is
+  #    safe. Treating "not forbidden" as "permitted" is the wrong default for
+  #    the one step that touches production, so this asks for a SHIP.
+  #
+  #    This does not re-derive a verdict. It reads the canonical one.
+  deploy:
+    name: Deploy the judged manifest
+    needs: changeguard
+    if: github.event_name == 'push' && needs.changeguard.outputs.verdict == 'SHIP'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No stored credential. GitHub proves who this workflow is, AWS decides
+      # whether to believe it. The role's trust policy names refs/heads/main,
+      # so a pull_request run cannot reach this even if the condition above
+      # were wrong.
+      - name: Assume the deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::416634374684:role/changeguard-demo-gha-deploy
+          role-session-name: changeguard-demo-${{ github.run_id }}
+          aws-region: us-east-1
+
+      - name: Point kubectl at the acceptance cluster
+        run: aws eks update-kubeconfig --name changeguard-acceptance --region us-east-1
+
+      # The object ChangeGuard judged, and only that object. Not base/: the
+      # namespace, the quota and the service are not what this change
+      # proposed, and applying them would need authority this role does not
+      # have. The manifest names its own namespace, so there is nowhere else
+      # for it to land.
+      - name: Apply the manifest that was judged
+        run: kubectl apply -f base/deployment.yaml
+
+      - name: Wait for the rollout to finish
+        run: kubectl rollout status deployment/demo-shop -n cg-demo --timeout=180s
+
+  # 3. RECORD. What actually happened, attached to the identity that was
+  #    judged — change_id and verdict_id, both explicit. Never inferred from
+  #    timing. Runs even when the deploy failed, because a failed deployment
+  #    is the outcome most worth recording against a verdict that allowed it.
+  outcome:
+    needs: [changeguard, deploy]
+    if: always() && github.event_name == 'push'
+    uses: ChangeGuard-AI/action/.github/workflows/outcome.yml@main
+    with:
+      change_id: ${{ needs.changeguard.outputs.change_id }}
+      verdict_id: ${{ needs.changeguard.outputs.verdict_id }}
+      deploy_result: ${{ needs.deploy.result }}
