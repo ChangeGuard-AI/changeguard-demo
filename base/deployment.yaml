@@ -14,7 +14,7 @@ metadata:
     app: demo-shop
     purpose: golden-demo
 spec:
-  replicas: 4
+  replicas: 20
   selector:
     matchLabels:
       app: demo-shop
